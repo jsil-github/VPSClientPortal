@@ -1,0 +1,268 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.OracleClient;
+using System.Linq;
+using System.Web;
+using System.Web.UI;
+using System.Web.UI.WebControls;
+
+public partial class Withdrawal : System.Web.UI.Page
+{
+    public static string FolioNo;
+    protected void Page_Load(object sender, EventArgs e)
+    {
+        
+         FolioNo = Session["FolioNo"] as string;
+        if (!IsPostBack)
+        {
+            grdData.DataSource = getData(FolioNo);
+            grdData.DataBind();
+            GridView1.DataSource = gettransactionhistory();
+            GridView1.DataBind();
+        }
+    }
+    private DataTable getData(string folioNumber)
+    {
+        DataTable tbl = new DataTable();
+        DataTable tblmain = new DataTable();
+        DAL.clsOracleConnection cn = new DAL.clsOracleConnection();
+        try
+        {
+
+
+
+            //string qry = "select query_text from jsil_queries where id=1";
+            string qry = "select QUERIES from jsil_investor_queries j where id = 1";
+
+
+
+            object query = DAL.OracleDataAccess.ExecuteScalar(cn.GetConnection(), CommandType.Text, qry);
+
+            OracleParameter[] oracleParameterArray = new OracleParameter[1];
+            oracleParameterArray[0] = new OracleParameter(":Folio_Number", OracleType.VarChar);
+            oracleParameterArray[0].Direction = ParameterDirection.Input;
+            oracleParameterArray[0].Value = folioNumber;
+            tbl = DAL.OracleDataAccess.ExecuteDataset(cn.GetConnection(), CommandType.Text, query.ToString(), oracleParameterArray).Tables[0];
+
+
+        }
+        catch (Exception ex)
+        {
+            Response.Write(ex.Message);
+        }
+        finally
+        {
+            cn.CloseConnection();
+        }
+
+        return tbl;
+    }
+
+
+    protected void grdData_RowUpdating(object sender, GridViewUpdateEventArgs e)
+    {
+        int index = Convert.ToInt32(e.RowIndex);
+        GridViewRow selectedRow = grdData.Rows[index];
+        TextBox txtNotes = (TextBox)selectedRow.FindControl("withdrawUnits");
+        string message = "alert('Sorry! " + txtNotes.Text + " ID')";
+        ScriptManager.RegisterStartupScript(this as Control, GetType(), "alert", message, true);
+
+    }
+
+    //string message = "alert('Sorry! "+ ((DataTable)Session["tblUser"]).Rows[0]["VPS_CORPORATE_ID"].ToString() +" ID')";
+    //ScriptManager.RegisterStartupScript(this as Control, GetType(), "alert", message, true);
+
+
+    protected void withdrawUnits_TextChanged(object sender, EventArgs e)
+    {
+        for (int i = 0; i < grdData.Rows.Count; i++)
+        {
+            //TextBox txtShare = (TextBox)grdData.Rows[i].FindControl("withdrawUnits");
+            GridViewRow selectedRow = grdData.Rows[i];
+            TextBox txtNotes = (TextBox)selectedRow.FindControl("withdrawUnits");
+            TextBox txtWithDrwAmount = (TextBox)selectedRow.FindControl("withdrawAmount");
+            //string message = "alert('Sorry! " + txtNotes.Text + " ID')";
+            //ScriptManager.RegisterStartupScript(this as Control, GetType(), "alert", message, true);
+            string NAV = grdData.Rows[i].Cells[2].Text;
+            //grdData.Rows[i].Cells[1].Text = "";
+            double NAVNumber = Convert.ToDouble(NAV != "" ? NAV : "0");
+            double InputNumber = Convert.ToDouble(txtNotes.Text != "" ? txtNotes.Text : "0");
+            txtWithDrwAmount.Text = (NAVNumber * InputNumber).ToString() != "0" ? (NAVNumber * InputNumber).ToString() : "";
+        }
+        
+        //int index = Convert.ToInt32(e.RowIndex);
+
+    }
+
+    protected void btnSubmit_Click(object sender, EventArgs e)
+    {
+        int recordinsertId;
+        //SendSMS sendmail = new SendSMS();
+        for (int i = 0; i < grdData.Rows.Count; i++)
+        {
+            //TextBox txtShare = (TextBox)grdData.Rows[i].FindControl("withdrawUnits");
+            GridViewRow selectedRow = grdData.Rows[i];
+            TextBox txtNotes = (TextBox)selectedRow.FindControl("withdrawUnits");
+            TextBox txtWithDrwAmount = (TextBox)selectedRow.FindControl("withdrawAmount");
+            //string message = "alert('Sorry! " + txtNotes.Text + " ID')";
+            //ScriptManager.RegisterStartupScript(this as Control, GetType(), "alert", message, true);
+            double NAV = Convert.ToDouble(grdData.Rows[i].Cells[2].Text);
+            double Available_Units = Convert.ToDouble(grdData.Rows[i].Cells[3].Text);
+            string fundname = grdData.Rows[i].Cells[1].Text;
+            //grdData.Rows[i].Cells[1].Text = "";
+            double NAVNumber = Convert.ToDouble(NAV != 0 ? NAV : 0);
+            double InputNumber = Convert.ToDouble(txtWithDrwAmount.Text != "" ? txtWithDrwAmount.Text : "0");
+            double withdrawalUnits;// = Convert.ToDouble(txtNotes.Text);
+            string notes=txtNotes.Text.Trim();
+            string amountunit = txtWithDrwAmount.Text;
+            if (notes == "")
+            {
+                continue;
+            }
+            if(!double.TryParse(txtNotes.Text,out withdrawalUnits))
+            {
+                withdrawalUnits = Convert.ToDouble(notes);
+            }
+            //if (Available_Units == 0 || Available_Units < 1)
+            //{
+            //    ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "Withdrawal Failed", "alert('Sorry you dont have enough Units to Withdraw!')", true);
+            //    return;
+            //}
+            //if (InputNumber == 0 || InputNumber < 1)
+            //{
+            //    ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "Withdrawal Failed", "alert('Sorry Please enter amount more than 0')", true);
+            //    return;
+            //}
+            //if (InputNumber > (NAV * Available_Units))
+            //{
+            //    ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "Withdrawal Failed", "alert('Sorry you dont have enough Units to Withdraw! ')", true);
+            //    return;
+            //}
+            string emailbody = @"
+                                    <html>
+                                        <body>
+                                            <h2>Request For Withdrawal</h2>
+                                            <table>
+                                                <tr>
+                                                    <td>Folio No:</td>
+                                                    <td>"+FolioNo+@"</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Withdrawal Units:</td>
+                                                    <td>"+ notes + @"</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Withdrawal Amount:</td>
+                                                    <td>"+ amountunit + @"</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Withdrawal Date:</td>
+                                                    <td>"+ DateTime.Now.ToString("dd-MMMM-yyyy") + @"</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Nav Amount:</td>
+                                                    <td>"+NAV.ToString()+@"</td>
+                                                </tr>
+                                                <tr>
+                                                    <td>Remaining Units:</td>
+                                                    <td>"+Available_Units.ToString()+@"</td>
+                                                </tr>
+                                                 <tr>
+                                                    <td>Fund:</td>
+                                                    <td>"+fundname+@"</td>
+                                                </tr>
+                                            </table>
+                                        </body>
+                                    </html>
+                                            ";
+
+            try
+            {
+                string query = @"insert into JSIL_VPS_REDEMPTION_DETAIL
+                                    (FOLIO_NUMBER,
+                                     NAV,
+                                     AMOUNT,
+                                     UNITS,
+                                     REMAINING_UNITS,
+                                     REMAINING_AMOUNT,
+                                     REDEMPTION_DATE,
+                                     FUND_NAME)
+                                  VALUES
+                                    ('"+FolioNo+"',  '"+ NAV + "', '"+ InputNumber + "', '"+ withdrawalUnits + "', '"+(Available_Units - withdrawalUnits)+ "', '235', SYSDATE, 'TEST')";
+
+                OracleCommand cmd = new OracleCommand(query);
+                cmd.Connection = new (System.Configuration.ConfigurationManager.AppSettings["ConnectionString"]);
+
+                
+                cmd.Connection.Open();
+                recordinsertId = cmd.ExecuteNonQuery();
+                if (recordinsertId > 0)
+                {
+                    GridView1.DataSource = gettransactionhistory();
+                    GridView1.DataBind();
+
+                }
+                cmd.Connection.Close();
+            }
+
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            SendSMS.SendEmail("nouman.khan@jsil.com", "Units With Drawal", emailbody, "tuaha.rasool@jsil.com");
+            //txtNotes.Text = (InputNumber / NAVNumber).ToString() != "0" ? (InputNumber / NAVNumber).ToString() : "";
+        }
+    }
+    public DataTable gettransactionhistory() {
+
+        DataTable tbl = new DataTable();
+        DAL.clsOracleConnection cn = new DAL.clsOracleConnection();
+        try
+        {
+            string qry = "select jvrd.fund_name, jvrd.nav, jvrd.amount,jvrd.units,jvrd.remaining_units,jvrd.redemption_date,jvrd.APPROVED_DATE,jvrd.status from JSIL_VPS_REDEMPTION_DETAIL jvrd where jvrd.folio_number = :FOLIO_NUMBER";
+            OracleParameter[] oracleParameterArray = new OracleParameter[1];
+            oracleParameterArray[0] = new OracleParameter(":Folio_Number", OracleType.VarChar);
+            oracleParameterArray[0].Direction = ParameterDirection.Input;
+            oracleParameterArray[0].Value = FolioNo;
+
+            tbl = DAL.OracleDataAccess.ExecuteDataTable(cn.GetConnection(), CommandType.Text, qry, oracleParameterArray);
+            if (tbl.Rows.Count > 0)
+            {
+                return tbl;
+            }
+            return tbl;
+        }
+
+        finally
+        {
+            cn.CloseConnection();
+        }
+    }
+
+
+    protected void withdrawAmount_TextChanged(object sender, EventArgs e)
+    {
+        for (int i = 0; i < grdData.Rows.Count; i++)
+        {
+            //TextBox txtShare = (TextBox)grdData.Rows[i].FindControl("withdrawUnits");
+            GridViewRow selectedRow = grdData.Rows[i];
+            TextBox txtNotes = (TextBox)selectedRow.FindControl("withdrawUnits");
+            TextBox txtWithDrwAmount = (TextBox)selectedRow.FindControl("withdrawAmount");
+            //string message = "alert('Sorry! " + txtNotes.Text + " ID')";
+            //ScriptManager.RegisterStartupScript(this as Control, GetType(), "alert", message, true);
+            string NAV = grdData.Rows[i].Cells[2].Text;
+            //double Units =Convert.ToDouble(grdData.Rows[i].Cells[2].Text);
+            //grdData.Rows[i].Cells[1].Text = "";
+            double NAVNumber = Convert.ToDouble(NAV != "" ? NAV : "0");
+            double InputNumber = Convert.ToDouble(txtWithDrwAmount.Text != "" ? txtWithDrwAmount.Text : "0");
+
+            //if (Units == 0 || Units < 1)
+            //{
+            //    ScriptManager.RegisterClientScriptBlock(this, this.GetType(), "Withdrawal Failed", "alert('Sorry you dont have enough Units to Withdraw!')", true);
+            //    return;
+            //}
+            txtNotes.Text = (InputNumber / NAVNumber).ToString() != "0" ? (InputNumber / NAVNumber).ToString() : "";
+        }
+    }
+}

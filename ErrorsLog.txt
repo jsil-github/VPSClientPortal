@@ -1,0 +1,12 @@
+   at System.Data.OracleClient.OracleConnection.CheckError(OciErrorHandle errorHandle, Int32 rc)
+   at System.Data.OracleClient.OracleCommand.Execute(OciStatementHandle statementHandle, CommandBehavior behavior, Boolean needRowid, OciRowidDescriptor& rowidDescriptor, ArrayList& resultParameterOrdinals)
+   at System.Data.OracleClient.OracleCommand.ExecuteNonQueryInternal(Boolean needRowid, OciRowidDescriptor& rowidDescriptor)
+   at System.Data.OracleClient.OracleCommand.ExecuteNonQuery()
+   at DAL.OracleDataAccess.ExecuteNonQuery(OracleConnection connection, CommandType commandType, String commandText, OracleParameter[] commandParameters) in c:\website\ClientPortal\App_Code\DAL.cs:line 284
+   at ChangeFund.btnSubmit_Click(Object sender, EventArgs e) in c:\website\ClientPortal\ChangeFund.aspx.cs:line 70
+
+   at System.Number.StringToNumber(String str, NumberStyles options, NumberBuffer& number, NumberFormatInfo info, Boolean parseDecimal)
+   at System.Number.ParseInt32(String s, NumberStyles style, NumberFormatInfo info)
+   at System.Convert.ToInt32(String value)
+   at ChangeFund.btnSubmit_Click(Object sender, EventArgs e) in c:\website\ClientPortal\ChangeFund.aspx.cs:line 65
+
